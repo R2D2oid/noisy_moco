@@ -1,6 +1,8 @@
 ## Noisy MoCo
-
-
+Train SSL representations:
+```
+python main_moco.py data -a resnet50 --lr 0.03 --batch-size 256 --world-size 1 --rank 0 --gpu 0
+```
 
 
 ## MoCo: Momentum Contrast for Unsupervised Visual Representation Learning
