@@ -25,8 +25,8 @@ import torchvision.models as models
 import moco.loader
 import moco.builder
 
-
 from dataloader import NoisyCIFAR10
+from PIL import Image, ImageFilter
 
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
@@ -101,6 +101,8 @@ parser.add_argument('--mlp', action='store_true',
                     help='use mlp head')
 parser.add_argument('--aug-plus', action='store_true',
                     help='use moco v2 data augmentation')
+parser.add_argument('--aug-custom', action='store_true',
+                    help='use custom augmentation to keep training consistent with other experiments')
 parser.add_argument('--cos', action='store_true',
                     help='use cosine lr schedule')
 
@@ -239,6 +241,44 @@ def main_worker(gpu, ngpus_per_node, args):
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             normalize
+        ])
+    elif args.aug_custom:
+        class GaussianBlur(object):
+            def __init__(self, p):
+                self.p = p
+
+            def __call__(self, img):
+                if random.random() < self.p:
+                    sigma = random.random() * 1.9 + 0.1
+                    return img.filter(ImageFilter.GaussianBlur(sigma))
+                else:
+                    return img
+
+
+        class Solarization(object):
+            def __init__(self, p):
+                self.p = p
+
+            def __call__(self, img):
+                if random.random() < self.p:
+                    return ImageOps.solarize(img)
+                else:
+                    return img
+
+        augmentation = transforms.Compose([
+            transforms.RandomResizedCrop(32, interpolation=Image.BICUBIC),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomApply(
+                [transforms.ColorJitter(brightness=0.4, contrast=0.4,
+                                        saturation=0.2, hue=0.1)],
+                p=0.8
+            ),
+            transforms.RandomGrayscale(p=0.2),
+            GaussianBlur(p=1.0),
+            Solarization(p=0.0),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.4914, 0.4822, 0.4465],
+                                 std=[0.2470, 0.2435, 0.2616])
         ])
     else:
         # MoCo v1's aug: the same as InstDisc https://arxiv.org/abs/1805.01978
