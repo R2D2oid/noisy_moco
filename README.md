@@ -1,7 +1,12 @@
 ## Noisy MoCo
 Train SSL representations:
 ```
-python main_moco.py data -a resnet50 --lr 0.03 --batch-size 256 --world-size 1 --rank 0 --gpu 0
+python main_moco.py data -a resnet50 --lr 0.03 --batch-size 1024 --world-size 1 --rank 0 --aug-custom --gpu 0 --resume checkpoints/checkpoint_xxx.pth.tar
+```
+
+Train Linear Classifier
+```
+python main_lincls.py data -a resnet50 --lr 30.0 --batch-size 256 --world-size 1 --rank 0 --pretrained checkpoints/checkpoint_0xxx.pth.tar 
 ```
 
 
